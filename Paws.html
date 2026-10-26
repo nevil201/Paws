@@ -30,8 +30,8 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .ghost:hover{border-color:var(--line2)}
 .wide{width:100%}
 nav{position:fixed;left:0;right:0;bottom:0;background:rgba(9,9,11,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-nav div{max-width:440px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
-nav button{padding:12px 0 10px;color:var(--mut);font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav div{max-width:440px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
+nav button{padding:12px 0 10px;color:var(--mut);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
 nav button span{font-size:20px;filter:grayscale(1);opacity:.6}
 nav button.on{color:var(--ch)}nav button.on span{filter:none;opacity:1}
 .tab{display:none}.tab.on{display:block}
@@ -81,6 +81,15 @@ canvas{width:100%;height:100%;display:block}
 .lb .sc{margin-left:auto;font-weight:700}
 .gap{text-align:center;color:var(--mut);letter-spacing:.3em;padding:2px}
 .txt{width:100%;background:var(--el);border:1px solid var(--line);border-radius:12px;color:var(--tx);padding:12px;font:inherit;font-size:15px;user-select:text}
+.bar{height:8px;background:var(--el);border-radius:6px;overflow:hidden;margin:12px 0 8px}
+.bar i{display:block;height:100%;background:var(--ch);width:0;transition:width .6s linear}
+.mbox{text-align:left;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.mbox .between{display:flex;justify-content:space-between;align-items:center}
+.mbox .btn{margin-top:10px}
+.rig>*+*{margin-top:12px}
+.dots{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.dots i{height:6px;border-radius:3px;background:var(--el)}
+.dots i.on{background:var(--ch)}
 .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .tx{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:10px;border-top:1px solid var(--line)}
 .tx:first-child{border-top:0;padding-top:0}
@@ -96,11 +105,22 @@ canvas{width:100%;height:100%;display:block}
 
 <!-- Главная -->
 <section id="t-home" class="tab on stack">
-  <div class="card tapzone">
-    <span class="paw" id="paw">🐾</span>
-    <div class="mut sm" style="margin-top:10px">Баланс $PAWS</div>
+  <div class="card" style="text-align:center">
+    <div class="mut sm">Баланс $PAWS</div>
     <div class="bal mono" id="bal">0</div>
-    <div class="mut sm" style="margin-top:4px">Тапай по лапе: +1 за касание</div>
+    <div class="mbox">
+      <div class="between"><span class="mut sm">⛏ Майнинг</span><b class="mono sm" id="mRate"></b></div>
+      <div class="bar"><i id="mBar"></i></div>
+      <div class="between"><span class="mono sm" id="mAcc"></span><span class="mut sm mono" id="mCap"></span></div>
+      <button class="btn wide" id="mClaim" onclick="claimMine()">Собрать</button>
+      <button class="btn ghost wide" onclick="tab('rig')">Улучшить ферму</button>
+    </div>
+  </div>
+  <div class="card" id="walCard" style="border-color:var(--line2)">
+    <div class="between" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div><b>Подключи TON-кошелёк</b><div class="mut sm">+10 PAWS в подарок и доступ к покупкам на ферме</div></div>
+      <button class="btn" onclick="connectWallet()">Подключить</button>
+    </div>
   </div>
   <div class="stats">
     <div class="card"><span class="mut sm">Дуэли</span><b class="mono" id="sD">0</b></div>
@@ -115,6 +135,20 @@ canvas{width:100%;height:100%;display:block}
     <div><b>PvP-рулетка</b><div class="mut sm">Ставка против ставки, победитель забирает банк</div></div>
     <button class="btn ghost" onclick="tab('pvp')">Играть</button>
   </div>
+</section>
+
+<!-- Ферма -->
+<section id="t-rig" class="tab stack">
+  <div class="card">
+    <h2>Майнинг-ферма</h2>
+    <p class="mut sm" style="margin:6px 0 0">Ферма добывает PAWS даже когда игра закрыта, но копит только до лимита блока питания. Заходи и собирай. Улучшай железо, чтобы получать больше.</p>
+    <div class="stats" style="grid-template-columns:repeat(2,1fr);margin-top:12px">
+      <div class="card"><span class="mut sm">Доход</span><b class="mono" id="rRate"></b></div>
+      <div class="card"><span class="mut sm">Лимит накопления</span><b class="mono" id="rCap"></b></div>
+    </div>
+  </div>
+  <div class="card mut sm mono" id="payInfo"></div>
+  <div id="rigList" class="stack"></div>
 </section>
 
 <!-- Бонус -->
@@ -150,12 +184,12 @@ canvas{width:100%;height:100%;display:block}
     <div class="mut mono sm" id="wton" style="margin-top:4px"></div>
   </div>
   <div class="card stack">
-    <div class="room"><b>TON-адрес</b><span class="mono sm mut" id="addrS">не привязан</span></div>
+    <div class="room"><b>TON-кошелёк</b><span class="mono sm mut" id="addrS">не привязан</span></div>
     <div id="addrBox" class="stack">
-      <input id="addrIn" type="text" class="txt" placeholder="UQ… или EQ…" autocomplete="off">
-      <button class="btn ghost wide" onclick="saveAddr()">Привязать адрес</button>
+      <button class="btn wide" onclick="connectWallet()">Подключить TON-кошелёк</button>
+      <div class="mut sm">Откроется выбор кошелька (Tonkeeper, Telegram Wallet и другие). Без подключения покупки недоступны.</div>
     </div>
-    <button class="btn ghost wide" id="unbind" onclick="unbind()" style="display:none">Отвязать адрес</button>
+    <button class="btn ghost wide" id="unbind" onclick="disconnectWallet()" style="display:none">Отключить кошелёк</button>
   </div>
   <div class="card stack">
     <b>История</b>
@@ -169,7 +203,9 @@ canvas{width:100%;height:100%;display:block}
     <h2>Приглашай друзей</h2>
     <p class="mut sm" style="margin:6px 0 0">За каждого друга ты получаешь 5 PAWS. Друг тоже получает 5, когда вводит твой код.</p>
     <div class="code mono" id="rcode"></div>
-    <button class="btn wide" onclick="copyRef()">Скопировать приглашение</button>
+    <div class="mut sm mono" id="rlink" style="word-break:break-all;margin-bottom:12px;text-align:center;user-select:text"></div>
+    <button class="btn wide" onclick="shareRef()">Отправить другу</button>
+    <button class="btn ghost wide" style="margin-top:8px" onclick="copyRef()">Скопировать приглашение</button>
   </div>
   <div class="stats" style="grid-template-columns:repeat(2,1fr)">
     <div class="card"><span class="mut sm">Друзей</span><b class="mono" id="rcnt">0</b></div>
@@ -199,6 +235,7 @@ canvas{width:100%;height:100%;display:block}
 
 <nav><div>
   <button data-t="home" class="on" onclick="tab('home')"><span>🐾</span>Главная</button>
+  <button data-t="rig" onclick="tab('rig')"><span>⛏️</span>Ферма</button>
   <button data-t="wal" onclick="tab('wal')"><span>👛</span>Кошелёк</button>
   <button data-t="pvp" onclick="tab('pvp')"><span>⚔️</span>Дуэли</button>
   <button data-t="ref" onclick="tab('ref')"><span>👥</span>Друзья</button>
@@ -242,11 +279,14 @@ canvas{width:100%;height:100%;display:block}
 
 <!-- Telegram Mini App SDK (работает, когда страница открыта внутри Telegram) -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 /* ===== НАСТРОЙКИ ===== */
-const BOT='YOUR_BOT_USERNAME';   // username бота без @
+const APP='';                    // короткое имя Mini App из /newapp (например play), если есть
+const BOT='PawAppBot';   // username бота без @
 const RATE=10000;                // 10 000 PAWS = 1 TON
 const MINW=10000;                // минимальный вывод, PAWS
 const FEE=0.02;                  // комиссия вывода 2%
@@ -256,7 +296,7 @@ const hap=t=>{try{TG&&TG.HapticFeedback.impactOccurred(t||'light')}catch(e){}};
 const ME=(TG&&TG.initDataUnsafe&&TG.initDataUnsafe.user&&TG.initDataUnsafe.user.first_name)||'Ты';
 const REW=[10,15,20,30,40,60,100];
 const DAY=864e5;
-let S={bal:0,duels:0,wins:0,earned:0,streak:0,last:0,refs:[],ms:[],used:false,tx:[],addr:'',refUids:[],pend:null};
+let S={bal:0,duels:0,wins:0,earned:0,streak:0,last:0,refs:[],ms:[],used:false,tx:[],addr:'',refUids:[],pend:null,mine:{gpu:0,cpu:1,cool:0,psu:0,acc:0,last:Date.now()},payPend:null,paid:[],walletBonus:false};
 try{const r=localStorage.getItem('paws_v2');if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 if(!S.refCode)S.refCode=Math.random().toString(36).slice(2,8).toUpperCase();
 function save(){schedulePush();try{localStorage.setItem('paws_v2',JSON.stringify(S))}catch(e){}}
@@ -264,7 +304,7 @@ const fmt=n=>Math.floor(n).toLocaleString('ru-RU');
 function render(){
   $('bal').textContent=fmt(S.bal);$('hb').textContent=fmt(S.bal);
   $('sD').textContent=S.duels;$('sW').textContent=S.wins;$('sE').textContent=fmt(S.earned);
-  renderGift();renderRef();renderTop();renderWallet();save();
+  renderGift();renderRef();renderTop();renderWallet();renderMine();save();
 }
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
 function tab(n){
@@ -272,14 +312,6 @@ function tab(n){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===n));
   scrollTo(0,0);
 }
-
-/* Тап */
-$('paw').addEventListener('pointerdown',e=>{
-  S.bal+=1;render();hap('light');
-  const f=document.createElement('div');f.className='float mono';f.textContent='+1';
-  f.style.left=(e.clientX-8)+'px';f.style.top=(e.clientY-30)+'px';document.body.appendChild(f);
-  setTimeout(()=>f.remove(),800);
-});
 
 /* Ежедневный бонус */
 function giftState(){
@@ -318,25 +350,6 @@ function claim(){
   try{confetti({particleCount:70,spread:70,origin:{y:.7},colors:['#ffffff','#9a9aa3','#3a3a40']})}catch(e){}
 }
 
-/* Лобби */
-const NAMES=['Мурзик','Шторм','Ёжик','Нова','Рекс','Лиса','Тень','Барсик','Вольт','Зефир','Грей','Ника'];
-let rooms=[];
-function genRooms(){
-  const bets=[25,50,100,250,500,1000,2500];
-  rooms=Array.from({length:6},(_,i)=>({id:i,name:NAMES[Math.random()*NAMES.length|0],bet:bets[Math.random()*bets.length|0]}))
-    .sort((a,b)=>a.bet-b.bet);
-  $('rooms').innerHTML=rooms.map((r,i)=>`
-   <div class="card room">
-     <div class="row"><div class="av">${r.name[0]}</div><div><b>${r.name}</b><div class="mut sm">Ждёт соперника</div></div></div>
-     <button class="btn" onclick="joinRoom(${i})">${fmt(r.bet)} 🐾</button>
-   </div>`).join('');
-}
-function joinRoom(i){
-  const r=rooms[i];
-  if(S.bal<r.bet)return toast('Не хватает PAWS');
-  const mine=r.bet;
-  startDuel(mine,r.name,r.bet,false);
-}
 let bet=100;
 function openCreate(){
   $('chips').innerHTML=[50,100,250,500].map(v=>`<button class="chip ${v===bet?'on':''}" onclick="pick(${v})">${v}</button>`).join('');
@@ -344,45 +357,9 @@ function openCreate(){
 }
 function closeCreate(){$('mCreate').classList.remove('on')}
 function pick(v){bet=v;$('betIn').value='';document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',+c.textContent===v))}
-function createLobby(){
-  const v=parseInt($('betIn').value)||bet;
-  if(v<10)return toast('Минимальная ставка 10');
-  if(v>S.bal)return toast('Не хватает PAWS');
-  closeCreate();
-  const opp=Math.round(v*(0.6+Math.random()*0.9));
-  startDuel(v,NAMES[Math.random()*NAMES.length|0],Math.max(10,opp),true);
-}
 
 /* Дуэль + колесо */
 let D=null,rot=0,spinning=false;
-function startDuel(mine,name,theirs,wait){
-  S.bal-=mine;tx('Ставка в дуэли',-mine);render();
-  D={mine,theirs,name,done:false};
-  $('duel').classList.add('on');
-  $('vsA').textContent=fmt(mine)+' 🐾';
-  $('res').innerHTML='';
-  $('leave').style.display='none';
-  rot=0;
-  if(wait){
-    $('avB').textContent='?';$('nmB').textContent='Ожидание…';$('vsB').textContent='';
-    $('pot').textContent=fmt(mine);
-    drawWheel(1,0);
-    $('res').innerHTML='<div class="mut">Ищем соперника…</div>';
-    D.timer=setTimeout(()=>ready(),1800+Math.random()*2200);
-    $('leave').style.display='';
-    $('leave').onclick=()=>{clearTimeout(D.timer);S.bal+=mine;tx('Возврат ставки',mine);render();$('duel').classList.remove('on');D=null;toast('Ставка возвращена')};
-  }else ready();
-}
-function ready(){
-  $('leave').style.display='none';
-  $('avB').textContent=D.name[0];$('nmB').textContent=D.name;
-  $('vsB').textContent=fmt(D.theirs)+' 🐾';
-  const pot=D.mine+D.theirs;
-  $('pot').textContent=fmt(pot);
-  const p=D.mine/pot;
-  drawWheel(p,rot);
-  $('res').innerHTML=`<div class="mut sm" style="margin-bottom:10px">Твой шанс: <b class="mono" style="color:#fff">${(p*100).toFixed(1)}%</b></div><button class="btn wide" id="spin" onclick="spin()">Крутить колесо</button>`;
-}
 function drawWheel(p,r){
   const c=$('wheel'),x=c.getContext('2d'),W=c.width,R=W/2-8;
   x.clearRect(0,0,W,W);
@@ -401,37 +378,6 @@ function drawWheel(p,r){
   x.restore();
   x.beginPath();x.arc(W/2,W/2,R+4,0,2*Math.PI);x.lineWidth=3;x.strokeStyle='rgba(255,255,255,.35)';x.stroke();
 }
-function spin(){
-  if(spinning||!D)return;
-  spinning=true;$('spin').disabled=true;
-  const pot=D.mine+D.theirs,p=D.mine/pot;
-  const win=Math.random()<p;
-  const a=2*Math.PI*p;
-  // угол внутри нужного сегмента (с отступом от границ)
-  let lo=win?0:a,hi=win?a:2*Math.PI,m=Math.min(.12,(hi-lo)*.2);
-  const phi=lo+m+Math.random()*(hi-lo-2*m);
-  const cur=((rot%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
-  const delta=((((-phi-cur)%(2*Math.PI))+2*Math.PI)%(2*Math.PI))+2*Math.PI*(6+(Math.random()*2|0));
-  const start=rot,dur=5200,t0=performance.now();
-  (function f(t){
-    const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,4);
-    rot=start+delta*e;drawWheel(p,rot);
-    if(k<1)requestAnimationFrame(f);else finish(win,pot);
-  })(t0);
-}
-function finish(win,pot){
-  spinning=false;
-  const prize=Math.floor(pot*0.95);
-  S.duels++;
-  if(win){S.wins++;S.bal+=prize;S.earned+=prize-D.mine;tx('Победа в дуэли',prize);hap('heavy');
-    $('res').innerHTML=`<b class="mono" style="color:var(--ok)">Победа! +${fmt(prize)} 🐾</b><div class="mut sm">Банк ${fmt(pot)}, комиссия 5%</div>`;
-    try{confetti({particleCount:110,spread:80,origin:{y:.6},colors:['#ffffff','#b9f5c9','#8b8b96']})}catch(e){}
-  }else{
-    $('res').innerHTML=`<b class="mono" style="color:var(--bad)">Проигрыш −${fmt(D.mine)} 🐾</b><div class="mut sm">Выиграл ${D.name}</div>`;
-  }
-  $('res').innerHTML+=`<div class="row" style="margin-top:14px;justify-content:center"><button class="btn" onclick="leave()">Ещё дуэль</button></div>`;
-  render();
-}
 function leave(){$('duel').classList.remove('on');D=null;if(!document.getElementById('t-pvp').classList.contains('on'))tab('pvp');genRooms()}
 
 /* Рефералы */
@@ -439,30 +385,26 @@ const FR=['Артём','Диана','Макс','Алиса','Тимур','Сон
 const REF=5; // награда за одного приглашённого, PAWS
 const MS=[{n:3,r:10},{n:10,r:50}];
 function renderRef(){
-  $('rcode').textContent=S.refCode;
+  $('rcode').textContent=S.refCode;$('rlink').textContent=refLink();
   $('rcnt').textContent=S.refs.length;
   $('rearn').textContent=fmt(S.refs.length*REF);
   $('rlist').innerHTML=S.refs.length?S.refs.slice().reverse().map(f=>`<div class="room"><div class="row"><div class="av">${f[0]}</div><b>${f}</b></div><span class="mono mut sm">+${REF}</span></div>`).join(''):'<div class="mut sm">Пока никого. Отправь код другу.</div>';
   $('ms').innerHTML='<b>Награды за серию друзей</b>'+MS.map(m=>{const c=S.ms.includes(m.n),ok=S.refs.length>=m.n;return `<div class="room"><div><b>${m.n} друзей</b><div class="mut sm mono">${Math.min(S.refs.length,m.n)}/${m.n} · +${fmt(m.r)} PAWS</div></div><button class="btn ${c?'ghost':''}" ${(!ok||c)?'disabled':''} onclick="claimMs(${m.n})">${c?'Получено':'Забрать'}</button></div>`}).join('');
   $('useBox').style.display=S.used?'none':'';
 }
+function refLink(){return 'https://t.me/'+BOT+(APP?'/'+APP:'')+'?startapp='+S.refCode}
+function shareRef(){
+  const link=refLink(),text='Залетай в PAWS и майни токены! Мой код: '+S.refCode;
+  try{
+    if(TG&&TG.openTelegramLink){TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent(text));return}
+  }catch(e){}
+  copyRef();
+}
 function copyRef(){
-  const t=`Залетай в PAWS и фарми токены! https://t.me/${BOT}?startapp=${S.refCode}\nМой код: ${S.refCode}`;
+  const t='Залетай в PAWS и майни токены! '+refLink()+'\nМой код: '+S.refCode;
   const ok=()=>toast('Приглашение скопировано');
   const fb=()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');ok()}catch(e){toast('Код: '+S.refCode)}a.remove()};
   try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}
-}
-function useCode(){
-  const v=$('useIn').value.trim().toUpperCase();
-  if(v.length<4)return toast('Введи код друга');
-  if(v===S.refCode)return toast('Свой код вводить нельзя');
-  S.used=true;S.bal+=REF;S.earned+=REF;tx('Бонус за код друга',REF);render();toast('+'+REF+' PAWS за код друга');
-  try{confetti({particleCount:60,spread:60,origin:{y:.7},colors:['#ffffff','#8b8b96']})}catch(e){}
-}
-function addDemo(){
-  const free=FR.filter(n=>!S.refs.includes(n));
-  if(!free.length)return toast('Тестовые друзья закончились');
-  S.refs.push(free[Math.random()*free.length|0]);S.bal+=REF;S.earned+=REF;tx('Награда за друга',REF);render();toast('+'+REF+' PAWS за друга');
 }
 function claimMs(n){
   const m=MS.find(x=>x.n===n);
@@ -471,17 +413,6 @@ function claimMs(n){
   try{confetti({particleCount:90,spread:70,origin:{y:.7},colors:['#ffffff','#b9f5c9']})}catch(e){}
 }
 
-/* Лидеры */
-const BOTS=[['Лунтик',58400],['Шторм',41250],['Нова',33900],['Вольт',27600],['Тень',21800],['Рекс',17300],['Лиса',12900],['Зефир',9400],['Барсик',6800],['Мурзик',4200],['Грей',2900],['Ёжик',1700],['Ника',900]];
-function renderTop(){
-  const all=BOTS.map(b=>({n:b[0],v:b[1],me:0})).concat({n:ME,v:S.bal,me:1}).sort((a,b)=>b.v-a.v);
-  const rank=all.findIndex(x=>x.me)+1;
-  $('myrank').textContent='Ты #'+rank;
-  const row=(x,i)=>`<div class="lb ${x.me?'me':''}"><div class="rk mono">${i<3?['🥇','🥈','🥉'][i]:'#'+(i+1)}</div><div class="av">${x.n[0]}</div><b>${x.n}</b><span class="sc mono">${fmt(x.v)} 🐾</span></div>`;
-  let h=all.slice(0,10).map(row).join('');
-  if(rank>10)h+='<div class="gap">···</div>'+row(all[rank-1],rank-1);
-  $('lb').innerHTML=h;
-}
 
 /* Кошелёк */
 const TONRE=/^(?:[EU]Q[A-Za-z0-9_-]{46}|0:[0-9a-fA-F]{64})$/;
@@ -494,12 +425,15 @@ function calcW(){
     :`Минимум ${fmt(MINW)} PAWS · ${fmt(RATE)} PAWS = 1 TON · комиссия ${FEE*100}%`;
 }
 function setW(f){$('wAmt').value=Math.floor(S.bal*f)||'';calcW()}
-function saveAddr(){
-  const v=$('addrIn').value.trim();
-  if(!TONRE.test(v))return toast('Неверный TON-адрес');
-  S.addr=v;$('addrIn').value='';render();toast('Адрес привязан');
+function connectWallet(){
+  if(!TC)return toast('TON Connect недоступен');
+  if(TC.connected)return toast('Кошелёк уже подключён');
+  TC.openModal();
 }
-function unbind(){S.addr='';render()}
+async function disconnectWallet(){
+  try{await TC.disconnect()}catch(e){}
+  S.addr='';render();toast('Кошелёк отключён');
+}
 function withdraw(){
   const a=parseInt($('wAmt').value)||0;
   if(!S.addr)return toast('Сначала привяжи TON-адрес');
@@ -509,59 +443,84 @@ function withdraw(){
   $('wAmt').value='';render();hap('medium');toast('Заявка на вывод создана');
 }
 function renderWallet(){
+  $('walCard').style.display=S.addr?'none':'';
   $('wb').textContent=fmt(S.bal)+' 🐾';
-  $('wton').textContent=S.addr?'TON-кошелёк привязан':'Привяжи TON-кошелёк ниже';
+  $('wton').textContent=S.addr?'TON-кошелёк подключён':'Подключи TON-кошелёк ниже';
   $('addrS').textContent=S.addr?short(S.addr):'не привязан';
   $('addrBox').style.display=S.addr?'none':'';
   $('unbind').style.display=S.addr?'':'none';
   $('txl').innerHTML=S.tx.length?S.tx.map(x=>{
     const d=new Date(x.t).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    return `<div class="tx"><div><b class="sm">${x.l}</b><div class="mut sm mono">${d}${x.st==='pending'?' · в обработке':''}</div></div><b class="mono" style="color:${x.a>0?'var(--ok)':'var(--tx)'}">${x.a>0?'+':'−'}${fmt(Math.abs(x.a))}</b></div>`;
+    return `<div class="tx"><div><b class="sm">${x.l}</b><div class="mut sm mono">${d}${x.st==='pending'?' · в обработке':''}</div></div><b class="mono" style="color:${x.a>0?'var(--ok)':'var(--tx)'}">${x.a===0?'TON':(x.a>0?'+':'−')+fmt(Math.abs(x.a))}</b></div>`;
   }).join(''):'<div class="mut sm">Операций пока нет</div>';
 }
 
 /* Реферал из ссылки t.me/BOT?startapp=КОД */
-/* ================= ОНЛАЙН (общая база страницы) ================= */
+/* ================= ОНЛАЙН (Supabase) ================= */
+const SB_URL='https://kaiddoidksuwgoymkjjk.supabase.co';
+const SB_KEY='sb_publishable_I56MNBKYyH61112bO8O5qQ_b7tHUUOv';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const LIFE=90000;
-let DB=null,UID=null,MYNAME=ME,CANW=false,ONL='wait',LOBBIES=[],PL=[],lastPush='';
+let SB=null,ERR='',UID=null,MYNAME=ME,ONL='wait',LOBBIES=[],PL=[],lastPush='',polling=false;
 var pt;
+function myId(){
+  const u=TG&&TG.initDataUnsafe&&TG.initDataUnsafe.user;
+  if(u&&u.id)return 'tg'+u.id;
+  let id=null;try{id=localStorage.getItem('paws_uid')}catch(e){}
+  if(!id){id='w'+Math.random().toString(36).slice(2,10);try{localStorage.setItem('paws_uid',id)}catch(e){}}
+  return id;
+}
 function onlineUI(){
-  $('onl').textContent=ONL==='wait'?'Подключение…':ONL==='off'?'○ Онлайн недоступен на этой странице':CANW?'● Онлайн · ты в сети как '+MYNAME:'○ Только просмотр: нужен доступ «Участник»';
+  $('onl').textContent=ONL==='wait'?'Подключение…':ONL==='off'?'○ Онлайн недоступен: '+ERR:'● Онлайн · '+MYNAME;
   genRooms();renderTop();
 }
 async function initOnline(){
   try{
-    if(!window.claude)throw 0;
-    DB=await claude.use('db');const u=await claude.use('user');
-    UID=u?await u.id():null;
-    if(!DB||!u||!UID)throw 0;
-    if(!TG){try{const p=await u.profiles([UID]);if(p&&p[UID]&&p[UID].name)MYNAME=p[UID].name}catch(e){}}
-    CANW=u.can('data.write')!==false;ONL='on';
-    DB.collection('duels').where('status','==','open').onSnapshot(s=>{LOBBIES=s.docs.map(d=>Object.assign({id:d.id},d.data()));genRooms()},()=>{});
-    DB.collection('players').orderBy('bal','desc').limit(10).onSnapshot(s=>{PL=s.docs.map(d=>Object.assign({id:d.id},d.data()));renderTop()},()=>{});
-    DB.collection('invites').where('code','==',S.refCode).onSnapshot(onInvites,()=>{});
-    await pushMe();await recover();
+    if(!window.supabase)throw new Error('библиотека не загрузилась');
+    if(SB_URL.startsWith('ВСТАВЬ')||SB_KEY.startsWith('ВСТАВЬ'))throw new Error('не вставлены ключи Supabase');
+    SB=supabase.createClient(SB_URL,SB_KEY,{
+      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+      global:{fetch:(u,o)=>{
+        if(o&&o.headers&&typeof o.headers.entries==='function'){o=Object.assign({},o,{headers:Object.fromEntries(o.headers.entries())})}
+        return fetch(u,o);
+      }}
+    });
+    const t=await SB.from('players').select('id').limit(1);
+    if(t.error)throw new Error('база: '+t.error.message);
+    UID=myId();if(ME==='Ты')MYNAME='Игрок '+UID.slice(-4);
+    await pushMe();ONL='on';
+    await recover();
+    poll();setInterval(poll,4000);
     const sp=TG&&TG.initDataUnsafe&&TG.initDataUnsafe.start_param;
     if(sp)applyCode(sp.toUpperCase());
-  }catch(e){DB=null;ONL='off'}
+  }catch(e){SB=null;ONL='off';ERR=(e&&e.message)||'неизвестная ошибка'}
   onlineUI();
+}
+async function poll(){
+  if(!SB||polling)return;polling=true;
+  try{
+    const since=new Date(Date.now()-LIFE).toISOString();
+    const a=await SB.from('duels').select('*').eq('status','open').gt('created',since);
+    if(a.data){LOBBIES=a.data;genRooms()}
+    const b=await SB.from('players').select('id,name,bal').order('bal',{ascending:false}).limit(10);
+    if(b.data){PL=b.data;renderTop()}
+    const c=await SB.from('invites').select('uid,name').eq('code',S.refCode);
+    if(c.data)onInvites(c.data);
+  }catch(e){}
+  polling=false;
 }
 function schedulePush(){clearTimeout(pt);pt=setTimeout(pushMe,3000)}
 async function pushMe(){
-  if(!DB||!CANW||!UID)return;
-  const k=S.bal+'|'+MYNAME+'|'+S.refCode;if(k===lastPush)return;
-  try{await DB.doc('players/'+UID).set({name:MYNAME,bal:S.bal,refCode:S.refCode,t:Date.now()});lastPush=k}catch(e){}
+  if(!SB||!UID)return;
+  const k=S.bal+'|'+MYNAME;if(k===lastPush)return;
+  try{const r=await SB.from('players').upsert({id:UID,name:MYNAME,bal:S.bal,ref_code:S.refCode,updated:new Date().toISOString()});if(!r.error)lastPush=k}catch(e){}
 }
 
 /* Лобби */
 function genRooms(){
-  const now=Date.now();
-  const L=LOBBIES.filter(l=>l.by!==UID&&now-l.t<LIFE).sort((a,b)=>a.bet-b.bet);
-  $('rooms').innerHTML=L.length?L.map(l=>`<div class="card room"><div class="row"><div class="av">${esc(l.name||'?')[0]}</div><div><b>${esc(l.name||'Игрок')}</b><div class="mut sm">Ждёт соперника</div></div></div><button class="btn" onclick="joinRoom('${l.id}')">${fmt(l.bet)} 🐾</button></div>`).join(''):'<div class="card mut sm" style="text-align:center">Открытых лобби нет. Создай своё и жди соперника.</div>';
+  const L=LOBBIES.filter(l=>l.creator!==UID).sort((a,b)=>a.bet-b.bet);
+  $('rooms').innerHTML=L.length?L.map(l=>`<div class="card room"><div class="row"><div class="av">${esc(l.cname||'?')[0]}</div><div><b>${esc(l.cname||'Игрок')}</b><div class="mut sm">Ждёт соперника</div></div></div><button class="btn" onclick="joinRoom('${l.id}')">${fmt(l.bet)} 🐾</button></div>`).join(''):'<div class="card mut sm" style="text-align:center">Открытых лобби нет. Создай своё и жди соперника.</div>';
 }
-setInterval(genRooms,15000);
 function openDuel(o){
   D=o;rot=0;spinning=false;
   $('duel').classList.add('on');
@@ -573,57 +532,52 @@ function openDuel(o){
 }
 async function createLobby(){
   const v=parseInt($('betIn').value)||bet;
-  if(!DB||!CANW)return toast('Онлайн недоступен');
+  if(!SB)return toast('Онлайн недоступен');
   if(v<10)return toast('Минимальная ставка 10');
   if(v>S.bal)return toast('Не хватает PAWS');
   closeCreate();
-  const ref=DB.collection('duels').doc();
-  S.bal-=v;S.pend={id:ref.id,bet:v};tx('Ставка в дуэли',-v);render();
-  openDuel({mine:v,name:'',id:ref.id,role:'c'});
+  const ins=await SB.from('duels').insert({creator:UID,cname:MYNAME,bet:v}).select().single();
+  if(ins.error||!ins.data)return toast('Не удалось создать лобби');
+  const id=ins.data.id;
+  S.bal-=v;S.pend={id,bet:v};tx('Ставка в дуэли',-v);render();
+  openDuel({mine:v,name:'',id,role:'c'});
   $('res').innerHTML='<div class="mut">Ждём соперника…</div>';
   $('leave').style.display='';$('leave').textContent='Отмена';$('leave').onclick=cancelLobby;
-  try{await ref.set({by:UID,name:MYNAME,bet:v,status:'open',t:Date.now()})}
-  catch(e){S.bal+=v;S.pend=null;tx('Возврат ставки',v);render();$('duel').classList.remove('on');D=null;return toast('Не удалось создать лобби')}
-  if(!D||D.id!==ref.id)return;
-  D.unsub=ref.onSnapshot(s=>{if(s.exists&&s.data().status==='spin')beginSpin(s.data())},()=>{});
   D.timer=setTimeout(cancelLobby,LIFE);
+  D.poll=setInterval(async()=>{
+    if(!D||D.id!==id||D.started){return}
+    try{const r=await SB.from('duels').select('*').eq('id',id).maybeSingle();
+      if(r.data&&r.data.status==='spin')beginSpin(r.data)}catch(e){}
+  },1500);
 }
 async function cancelLobby(){
   if(!D||D.started||D.role!=='c')return;
-  clearTimeout(D.timer);D.unsub&&D.unsub();
-  const r=DB.doc('duels/'+D.id);
-  try{
-    const lk=await r.acquire({holder:UID,ttlMs:8000});
-    if(!lk.acquired)await sleep(1500);
-    const s=await r.get();
-    if(s.exists&&s.data().status==='spin'){beginSpin(s.data());return}
-    await r.delete();
-  }catch(e){}
+  clearTimeout(D.timer);clearInterval(D.poll);
+  const r=await SB.rpc('cancel_duel',{p_id:D.id,p_uid:UID});
+  if(r.error){toast('Ошибка сети, попробуй ещё раз');D.poll=null;return}
+  if(r.data===false){
+    const g=await SB.from('duels').select('*').eq('id',D.id).maybeSingle();
+    if(g.data&&g.data.status==='spin'){beginSpin(g.data);return}
+  }
   S.bal+=D.mine;S.pend=null;tx('Возврат ставки',D.mine);render();
   $('duel').classList.remove('on');D=null;toast('Лобби закрыто, ставка возвращена');
 }
 async function joinRoom(id){
-  if(!DB||!CANW)return toast('Онлайн недоступен');
+  if(!SB)return toast('Онлайн недоступен');
   const l=LOBBIES.find(x=>x.id===id);
   if(!l)return toast('Лобби уже занято');
   if(S.bal<l.bet)return toast('Не хватает PAWS');
-  const r=DB.doc('duels/'+id);
-  try{
-    const lk=await r.acquire({holder:UID,ttlMs:8000});
-    if(!lk.acquired)return toast('Лобби уже занято');
-    const s=await r.get(),d=s.exists&&s.data();
-    if(!d||d.status!=='open'||Date.now()-d.t>=LIFE||S.bal<d.bet)return toast('Лобби уже занято');
-    const res={status:'spin',jby:UID,jname:MYNAME,winner:Math.random()<.5?'c':'j',ph:.12+Math.random()*.76};
-    await r.update(res);
-    S.bal-=d.bet;tx('Ставка в дуэли',-d.bet);render();
-    openDuel({mine:d.bet,name:d.name||'Игрок',id,role:'j'});
-    beginSpin(Object.assign({},d,res));
-  }catch(e){toast('Не удалось войти в лобби')}
+  const r=await SB.rpc('join_duel',{p_id:id,p_uid:UID,p_name:MYNAME});
+  if(r.error||!r.data)return toast('Лобби уже занято');
+  const d=r.data;
+  S.bal-=d.bet;tx('Ставка в дуэли',-d.bet);render();
+  openDuel({mine:d.bet,name:d.cname||'Игрок',id,role:'j'});
+  beginSpin(d);
 }
 function beginSpin(d){
   if(!D||D.started)return;
-  D.started=true;clearTimeout(D.timer);D.unsub&&D.unsub();
-  D.name=(D.role==='c'?d.jname:d.name)||'Игрок';D.pot=D.mine*2;
+  D.started=true;clearTimeout(D.timer);clearInterval(D.poll);
+  D.name=(D.role==='c'?d.jname:d.cname)||'Игрок';D.pot=D.mine*2;
   $('avB').textContent=D.name[0];$('nmB').textContent=D.name;
   $('vsB').textContent=fmt(D.mine)+' 🐾';$('pot').textContent=fmt(D.pot);
   $('leave').style.display='none';$('res').innerHTML='<div class="mut">Крутим…</div>';
@@ -654,25 +608,30 @@ async function finishDuel(win){
   }
   $('res').innerHTML+='<div class="row" style="margin-top:14px;justify-content:center"><button class="btn" onclick="leave()">Ещё дуэль</button></div>';
   render();
-  try{await DB.doc('duels/'+D.id).delete()}catch(e){}
+  try{await SB.from('duels').delete().eq('id',D.id)}catch(e){}
 }
 async function recover(){
-  if(!S.pend||!DB)return;
+  if(!S.pend||!SB)return;
   const p=S.pend;
   try{
-    const r=DB.doc('duels/'+p.id),s=await r.get(),d=s.exists&&s.data();
+    const r=await SB.from('duels').select('*').eq('id',p.id).maybeSingle();
+    if(r.error)return;
+    const d=r.data;
     if(d&&d.status==='spin'){
       S.duels++;
       if(d.winner==='c'){const pr=Math.floor(p.bet*2*.95);S.wins++;S.bal+=pr;S.earned+=pr-p.bet;tx('Победа в дуэли',pr)}
-    }else{S.bal+=p.bet;tx('Возврат ставки',p.bet)}
+    }else{
+      if(d)await SB.rpc('cancel_duel',{p_id:p.id,p_uid:UID});
+      S.bal+=p.bet;tx('Возврат ставки',p.bet);
+    }
     S.pend=null;render();
-    if(d)await r.delete();
+    if(d)await SB.from('duels').delete().eq('id',p.id);
   }catch(e){}
 }
 
 /* Рейтинг */
 function renderTop(){
-  if(!DB){$('lb').innerHTML=`<div class="card mut sm" style="text-align:center">${ONL==='wait'?'Подключение…':'Онлайн-рейтинг недоступен'}</div>`;$('myrank').textContent='';return}
+  if(!SB){$('lb').innerHTML=`<div class="card mut sm" style="text-align:center">${ONL==='wait'?'Подключение…':'Онлайн-рейтинг недоступен'}</div>`;$('myrank').textContent='';return}
   const row=(n,v,me,i)=>`<div class="lb ${me?'me':''}"><div class="rk mono">${typeof i==='number'&&i<3?['🥇','🥈','🥉'][i]:(typeof i==='number'?'#'+(i+1):'—')}</div><div class="av">${esc(n||'?')[0]}</div><b>${esc(n||'Игрок')}${me?' (ты)':''}</b><span class="sc mono">${fmt(v)} 🐾</span></div>`;
   const idx=PL.findIndex(x=>x.id===UID);
   let h=PL.map((x,i)=>row(x.name,x.id===UID?S.bal:x.bal,x.id===UID,i)).join('');
@@ -682,28 +641,153 @@ function renderTop(){
   $('myrank').textContent=idx>=0?'Ты #'+(idx+1):'Вне топ-10';
 }
 
-/* Рефералы онлайн */
+/* Рефералы */
 async function applyCode(v){
   if(S.used)return false;
-  if(!DB||!CANW){toast('Онлайн недоступен');return false}
+  if(!SB){toast('Онлайн недоступен');return false}
   if(v===S.refCode){toast('Свой код вводить нельзя');return false}
   try{
-    const q=await DB.collection('players').where('refCode','==',v).limit(1).get();
-    if(q.empty){toast('Код не найден');return false}
-    await DB.doc('invites/'+v+'_'+UID).set({code:v,uid:UID,name:MYNAME,t:Date.now()});
+    const prev=await SB.from('invites').select('code').eq('uid',UID).limit(1);
+    if(prev.error)throw 0;
+    if(prev.data&&prev.data.length){S.used=true;render();toast('Ты уже вводил код друга');return false}
+    const q=await SB.from('players').select('id').eq('ref_code',v).limit(1);
+    if(q.error)throw 0;
+    if(!q.data.length){toast('Код не найден');return false}
+    const i=await SB.from('invites').insert({code:v,uid:UID,name:MYNAME});
+    if(i.error){
+      if(i.error.code==='23505'){S.used=true;render();toast('Этот код уже использован');return false}
+      throw 0;
+    }
     S.used=true;S.bal+=REF;S.earned+=REF;tx('Бонус за код друга',REF);render();toast('+'+REF+' PAWS за код друга');return true;
   }catch(e){toast('Ошибка сети');return false}
 }
 function useCode(){applyCode($('useIn').value.trim().toUpperCase())}
-function onInvites(s){
+function onInvites(rows){
   let ch=false;
-  s.docs.forEach(d=>{const x=d.data();
+  rows.forEach(x=>{
     if(!x||x.uid===UID||S.refUids.includes(x.uid))return;
     S.refUids.push(x.uid);S.refs.push(x.name||'Игрок');S.bal+=REF;S.earned+=REF;tx('Награда за друга',REF);ch=true});
   if(ch){render();toast('Новый друг! +'+REF+' PAWS')}
 }
 
-render();initOnline();
+/* ===== МАЙНИНГ ===== */
+const PARTS={
+  gpu:{t:'Видеокарта',e:'🎮',names:['Нет','GTX 1050','GTX 1660','RTX 2060','RTX 3060','RTX 3070','RTX 3080','RTX 4070','RTX 4080','RTX 4090','RTX 5090'],inc:[0,2,5,10,20,40,75,130,220,350,500],cost:[0,20,50,120,250,500,900,1500,2500,4000,6500]},
+  cpu:{t:'Процессор',e:'🧠',names:['Нет','Celeron','Core i3','Core i5','Ryzen 5','Core i7','Ryzen 7','Core i9','Ryzen 9','Threadripper','EPYC'],inc:[0,1,3,6,12,22,40,70,115,180,260],cost:[0,0,40,90,180,350,650,1100,1800,2900,4500]},
+  cool:{t:'Охлаждение',e:'❄️',names:['Штатное','Кулер','Башня','Башня+','СЖО 120','СЖО 240','СЖО 360','Кастомная СЖО','Фреон','Криосистема','Азот'],cost:[0,30,60,120,240,450,800,1300,2100,3300,5000]},
+  psu:{t:'Блок питания',e:'🔌',names:['Базовый','400W','500W','600W','750W','850W','1000W','1200W','1600W','2000W','Серверный'],cost:[0,25,50,100,200,400,700,1200,2000,3200,5000]}
+};
+const MAXLV=10;
+function mRate(){const m=S.mine;return (PARTS.gpu.inc[m.gpu]+PARTS.cpu.inc[m.cpu])*(1+0.05*m.cool)}
+function mCapH(){return 2+S.mine.psu}
+let mTicks=0;
+function tickMine(){
+  const m=S.mine,now=Date.now();
+  const dt=Math.max(0,(now-m.last)/1000);m.last=now;
+  const cap=mRate()*mCapH();
+  m.acc=Math.min(cap,m.acc+mRate()/3600*dt);
+  paintMine();
+  if(++mTicks%15===0)save();
+}
+function paintMine(){
+  const m=S.mine,r=mRate(),cap=r*mCapH();
+  $('mRate').textContent=r>0?'+'+r.toFixed(1)+' PAWS/час':'нет оборудования';
+  $('mAcc').textContent=m.acc.toFixed(2);
+  $('mCap').textContent='лимит '+fmt(cap)+' · '+mCapH()+' ч';
+  $('mBar').style.width=(cap>0?Math.min(100,m.acc/cap*100):0)+'%';
+  $('mClaim').disabled=m.acc<1;
+  $('mClaim').textContent=m.acc>=1?'Собрать +'+Math.floor(m.acc)+' PAWS':'Пока нечего собирать';
+  $('rRate').textContent=r.toFixed(1)+'/час';
+  $('rCap').textContent=fmt(cap)+' PAWS';
+}
+function claimMine(){
+  tickMine();
+  const m=S.mine,a=Math.floor(m.acc);
+  if(a<1)return toast('Пока нечего собирать');
+  m.acc-=a;S.bal+=a;S.earned+=a;tx('Майнинг',a);render();toast('+'+a+' PAWS');hap('light');
+}
+/* ===== ОПЛАТА TON ===== */
+const TON_ADDR='UQD1lBpXAMRR-r-Yb7NlVgDeG6rq6Hkd4g5c6B27m4XZApeF';   // твой кошелёк, на который приходят платежи
+const TON_MANIFEST='https://nevil201.github.io/Paws/tonconnect-manifest.json';
+const TPRICE={   // цена каждого уровня в TON (индекс = уровень)
+  gpu :[0,0.1,0.2,0.4,0.8,1.5,2.5,4,6,9,13],
+  cpu :[0,0,0.15,0.3,0.6,1.1,1.8,3,4.5,7,10],
+  cool:[0,0.1,0.2,0.4,0.7,1.2,2,3,4.5,6.5,9],
+  psu :[0,0.1,0.2,0.35,0.6,1,1.6,2.5,3.8,5.5,8]
+};
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+let TC=null,watching=false;
+function initTon(){
+  try{
+    if(window.TON_CONNECT_UI){
+      TC=new TON_CONNECT_UI.TonConnectUI({manifestUrl:TON_MANIFEST});
+      TC.onStatusChange(w=>{
+        let a='';
+        if(w&&w.account){
+          a=w.account.address;
+          try{if(TON_CONNECT_UI.toUserFriendlyAddress)a=TON_CONNECT_UI.toUserFriendlyAddress(a)}catch(e){}
+        }
+        const was=S.addr;S.addr=a;
+        if(a&&!S.walletBonus){S.walletBonus=true;S.bal+=10;S.earned+=10;tx('Бонус за подключение кошелька',10)}
+        render();
+        if(a&&!was)toast('Кошелёк подключён');
+      });
+    }
+  }catch(e){TC=null}
+}
+async function buyUpgrade(k){
+  tickMine();
+  const m=S.mine,lv=m[k];
+  if(lv>=MAXLV)return;
+  if(S.payPend)return toast('Дождись подтверждения прошлого платежа');
+  if(TON_ADDR.startsWith('ВСТАВЬ'))return toast('Приём TON ещё не настроен');
+  if(!TC)return toast('TON Connect недоступен');
+  if(!TC.connected){TC.openModal();return toast('Подключи кошелёк и нажми «Купить» ещё раз')}
+  const price=TPRICE[k][lv+1];
+  const nano=Math.round(price*1e9)+Math.floor(100000+Math.random()*900000); // уникальная метка платежа
+  S.payPend={k,to:lv+1,nano,t:Math.floor(Date.now()/1000)};save();renderMine();
+  try{
+    await TC.sendTransaction({validUntil:Math.floor(Date.now()/1000)+600,messages:[{address:TON_ADDR,amount:String(nano)}]});
+  }catch(e){S.payPend=null;save();renderMine();return toast('Платёж отменён')}
+  watchPay();
+}
+async function watchPay(){
+  if(watching||!S.payPend)return;
+  watching=true;renderMine();
+  const p=S.payPend;
+  for(let i=0;i<48&&S.payPend;i++){
+    try{
+      const r=await fetch('https://toncenter.com/api/v2/getTransactions?address='+encodeURIComponent(TON_ADDR)+'&limit=30');
+      const j=await r.json();
+      const hit=(j.result||[]).find(t=>t.in_msg&&String(t.in_msg.value)===String(p.nano)&&t.utime>=p.t-60&&t.transaction_id&&!S.paid.includes(t.transaction_id.hash));
+      if(hit){
+        tickMine();
+        S.paid.push(hit.transaction_id.hash);
+        S.mine[p.k]=Math.max(S.mine[p.k],p.to);
+        S.payPend=null;
+        tx('Покупка: '+PARTS[p.k].t+', ур. '+p.to+' ('+(p.nano/1e9).toFixed(3)+' TON)',0);
+        render();toast('Куплено! '+PARTS[p.k].t+' → уровень '+p.to);hap('heavy');
+        try{confetti({particleCount:90,spread:70,origin:{y:.7},colors:['#ffffff','#8b8b96']})}catch(e){}
+        watching=false;return;
+      }
+    }catch(e){}
+    await wait(5000);
+  }
+  watching=false;renderMine();toast('Платёж пока не найден. Проверим при следующем входе');
+}
+function renderMine(){
+  const m=S.mine;
+  const eff=(k,l)=>k==='cool'?'+'+(l*5)+'% к доходу':k==='psu'?'копит '+(2+l)+' ч':'+'+PARTS[k].inc[l]+' PAWS/час';
+  $('rigList').innerHTML=Object.keys(PARTS).map(k=>{
+    const P=PARTS[k],lv=m[k],max=lv>=MAXLV,c=max?0:TPRICE[k][lv+1];
+    return `<div class="card rig"><div class="between" style="display:flex;justify-content:space-between;align-items:center"><div class="row"><div class="av">${P.e}</div><div><b>${P.t}</b><div class="mut sm">${P.names[lv]}</div></div></div><span class="pill mono sm">ур. ${lv}/${MAXLV}</span></div><div class="dots">${Array.from({length:MAXLV},(_,i)=>`<i class="${i<lv?'on':''}"></i>`).join('')}</div><div class="mut sm mono">${eff(k,lv)}${max?'':' → '+eff(k,lv+1)}</div><button class="btn wide" ${max||S.payPend?'disabled':''} onclick="buyUpgrade('${k}')">${max?'Максимальный уровень':(S.addr?'Купить · '+c+' TON':'Подключить кошелёк · '+c+' TON')}</button></div>`;
+  }).join('');
+  $('payInfo').textContent=S.payPend?'⏳ Ждём платёж '+(S.payPend.nano/1e9).toFixed(6)+' TON…':(TON_ADDR.startsWith('ВСТАВЬ')?'Оплата TON ещё не настроена':'Оплата в TON через TON Connect. К цене добавляется крошечная метка платежа (меньше 0.001 TON).');
+  paintMine();
+}
+
+initTon();tickMine();setInterval(tickMine,1000);
+render();initOnline();if(S.payPend)watchPay();
 </script>
 </body>
 </html>
